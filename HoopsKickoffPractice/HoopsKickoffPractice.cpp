@@ -101,7 +101,6 @@ void HoopsKickoffPractice::onBallAdded(std::string eventName)
 
 	// If ball was set by the game event, the game will provide the velocity if the player is currently providing input
 	if (eventName.size() == 0 || !carHasInput(cars)) {
-		cvarManager->log("setting delay");
 		delaySet = false;
 		gameWrapper->HookEvent("Function GameEvent_Soccar_TA.Active.Tick",
 			std::bind(&HoopsKickoffPractice::checkCarMoved, this, std::placeholders::_1));
