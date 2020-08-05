@@ -1,0 +1,5 @@
+Hoops Kickoff Practice Plugin
+9|In the bindings tab, you can attach a keybinding for "togglemenu hoopskickoffpractice" to assign a key for opening the GUI.
+0|Open GUI|plugin load hoopskickoffpractice; writeplugins; togglemenu hoopskickoffpractice
+8|
+9|Plugin made by DaftPenguin
