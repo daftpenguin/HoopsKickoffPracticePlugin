@@ -9,7 +9,7 @@
 #include <sstream>
 #include <unordered_set>
 
-BAKKESMOD_PLUGIN(HoopsKickoffPractice, "Hoops Kickoff Practice", plugin_version, PLUGINTYPE_FREEPLAY | PERMISSION_CUSTOM_TRAINING)
+BAKKESMOD_PLUGIN(HoopsKickoffPractice, "Hoops Kickoff Practice", plugin_version, PLUGINTYPE_FREEPLAY | PERMISSION_CUSTOM_TRAINING);
 
 void HoopsKickoffPractice::onLoad()
 {
@@ -39,8 +39,6 @@ void HoopsKickoffPractice::onFreeplayStarted(std::string eventName)
 	if (!isHoops(server)) {
 		return;
 	}
-
-	server.SetLobbyCountdown(2);
 
 	gameWrapper->UnhookEventPost(freeplay_started_event);
 
@@ -103,6 +101,7 @@ void HoopsKickoffPractice::onBallAdded(std::string eventName)
 
 	// If ball was set by the game event, the game will provide the velocity if the player is currently providing input
 	if (eventName.size() == 0 || !carHasInput(cars)) {
+		cvarManager->log("setting delay");
 		delaySet = false;
 		gameWrapper->HookEvent("Function GameEvent_Soccar_TA.Active.Tick",
 			std::bind(&HoopsKickoffPractice::checkCarMoved, this, std::placeholders::_1));
@@ -130,6 +129,9 @@ void HoopsKickoffPractice::checkCarMoved(std::string eventName)
 	if (cars.Count() == 0) {
 		return;
 	}
+
+	ball.SetLocation(Vector{ 0, 0, 103.13 });
+	ball.SetVelocity(Vector{ 0, 0, 0 });
 
 	// Add countdown somewhere?
 
