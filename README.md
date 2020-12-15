@@ -12,9 +12,13 @@ These features work with multiple players in either a local freeplay session or 
 
 * Plugin doesn't work on the first kickoff. Just reset the ball and it should work.
 * Player spawn locations don't update when new players join/leave until you reset the ball.
-* Every once in awhile the kickoff motion is scuffed and either moves too fast or barely moves at all.
 
 # Changelog
+
+v0.2
+* Updated to work with upcoming Epic Games support
+* Fixed issue where the ball sometimes moves too fast or barely moves at all during kickoff
+
 
 v0.1
 * Initial release
