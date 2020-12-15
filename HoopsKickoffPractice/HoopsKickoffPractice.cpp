@@ -119,8 +119,7 @@ void HoopsKickoffPractice::onBallAdded(std::string eventName)
 			if (!pri.IsNull()) {
 				SpawnName spawn = playerToSpawn[GetUniqueID(pri)];
 				SpawnPoint point = spawnNameToPoint[spawn];
-				car.SetLocation(point.location);
-				car.SetRotation(point.rotation);
+				car.Teleport(point.location, point.rotation, 0, 0, 0);
 			}
 		}
 	}
@@ -165,8 +164,6 @@ void HoopsKickoffPractice::checkCarMoved(std::string eventName)
 
 	ball.SetLocation(Vector{ 0, 0, 103.13 });
 	ball.SetVelocity(Vector{ 0, 0, 0 });
-
-	// Add countdown somewhere?
 
 	if (carHasInput(cars)) {
 		if (!delaySet) {
