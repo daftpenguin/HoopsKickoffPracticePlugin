@@ -1,4 +1,3 @@
-// TODO: Fix the thing causing the ball trajectory to not be correctly set sometimes. Pretty sure it's the original kickoff trajectory. Any way to remove or just delay it?
 // TODO: Freeze players until host moves? Or just add a countdown? Still need to figure this out for team training plugin...
 // TODO: Dpad to cycle spawns when car is still in spawn
 // TODO: Add a bot for buddy kickoff
@@ -10,6 +9,23 @@
 #include <unordered_set>
 
 BAKKESMOD_PLUGIN(HoopsKickoffPractice, "Hoops Kickoff Practice", plugin_version, PLUGINTYPE_FREEPLAY | PERMISSION_CUSTOM_TRAINING);
+
+std::string GetUniqueID(PlayerReplicationInfoWrapper pri) {
+	if (pri.IsNull()) {
+		return "";
+	}
+
+	std::string uid = pri.GetUniqueIdWrapper().str();
+	if (uid == "0") {
+		auto name = pri.GetPlayerName();
+		if (name.IsNull()) {
+			return "";
+		}
+		return name.ToString();
+	}
+
+	return uid;
+}
 
 void HoopsKickoffPractice::onLoad()
 {
@@ -44,6 +60,8 @@ void HoopsKickoffPractice::onFreeplayStarted(std::string eventName)
 
 	gameWrapper->HookEventPost(ball_added_event,
 		std::bind(&HoopsKickoffPractice::onBallAdded, this, std::placeholders::_1));
+	gameWrapper->HookEventPost(ball_lift_added_event,
+		std::bind(&HoopsKickoffPractice::onBallLiftAdded, this, std::placeholders::_1));
 }
 
 void HoopsKickoffPractice::onFreeplayEnded(std::string eventName)
@@ -53,6 +71,7 @@ void HoopsKickoffPractice::onFreeplayEnded(std::string eventName)
 
 	gameWrapper->UnhookEventPost(ball_added_event);
 	gameWrapper->UnhookEventPost(movement_check_event);
+	gameWrapper->UnhookEventPost(ball_lift_added_event);
 }
 
 void HoopsKickoffPractice::onStop()
@@ -63,6 +82,8 @@ void HoopsKickoffPractice::onStop()
 
 void HoopsKickoffPractice::onBallAdded(std::string eventName)
 {
+	ballLiftAdded = false;
+
 	if (!gameWrapper->IsInFreeplay()) {
 		return;
 	}
@@ -82,6 +103,9 @@ void HoopsKickoffPractice::onBallAdded(std::string eventName)
 	}
 
 	auto cars = server.GetCars();
+	if (cars.IsNull()) {
+		return;
+	}
 	if (cars.Count() == 0) {
 		return;
 	}
@@ -90,21 +114,28 @@ void HoopsKickoffPractice::onBallAdded(std::string eventName)
 
 	for (int i = 0; i < cars.Count(); i++) {
 		auto car = cars.Get(i);
-		auto pri = car.GetPRI();
-		if (!pri.IsNull()) {
-			SpawnName spawn = playerToSpawn[pri.GetUniqueId().ID];
-			SpawnPoint point = spawnNameToPoint[spawn];
-			car.SetLocation(point.location);
-			car.SetRotation(point.rotation);
+		if (!car.IsNull()) {
+			auto pri = car.GetPRI();
+			if (!pri.IsNull()) {
+				SpawnName spawn = playerToSpawn[GetUniqueID(pri)];
+				SpawnPoint point = spawnNameToPoint[spawn];
+				car.SetLocation(point.location);
+				car.SetRotation(point.rotation);
+			}
 		}
 	}
 
 	// If ball was set by the game event, the game will provide the velocity if the player is currently providing input
 	if (eventName.size() == 0 || !carHasInput(cars)) {
 		delaySet = false;
-		gameWrapper->HookEvent("Function GameEvent_Soccar_TA.Active.Tick",
+		gameWrapper->HookEventPost("Function GameEvent_Soccar_TA.Active.Tick",
 			std::bind(&HoopsKickoffPractice::checkCarMoved, this, std::placeholders::_1));
 	}
+}
+
+void HoopsKickoffPractice::onBallLiftAdded(std::string eventName)
+{
+	ballLiftAdded = true;
 }
 
 void HoopsKickoffPractice::checkCarMoved(std::string eventName)
@@ -125,6 +156,9 @@ void HoopsKickoffPractice::checkCarMoved(std::string eventName)
 	}
 
 	auto cars = server.GetCars();
+	if (cars.IsNull()) {
+		return;
+	}
 	if (cars.Count() == 0) {
 		return;
 	}
@@ -139,10 +173,10 @@ void HoopsKickoffPractice::checkCarMoved(std::string eventName)
 			ball.SetLocation(Vector{ 0, 0, 103.13 });
 			ball.SetVelocity(Vector{ 0, 0, 0 });
 
-			gameWrapper->UnhookEvent("Function GameEvent_Soccar_TA.Active.Tick");
+			gameWrapper->UnhookEventPost("Function GameEvent_Soccar_TA.Active.Tick");
 			delaySet = true;
 			gameWrapper->SetTimeout([&](GameWrapper* gw) {
-				if (!delaySet) {
+				if (!delaySet || !ballLiftAdded) {
 					return;
 				}
 				delaySet = false;
@@ -210,33 +244,21 @@ bool HoopsKickoffPractice::carHasInput(ArrayWrapper<CarWrapper> cars)
 
 bool HoopsKickoffPractice::isHoops(ServerWrapper server)
 {
-	// TODO: Do this better? I am haxor
-	auto spawns = server.GetSpawnPoints();
-	if (spawns.IsNull()) {
-		return false;
-	}
-
-	for (int i = 0; i < spawns.Count(); i++) {
-		auto spawn = spawns.Get(i).GetLocation();
-		if (abs(spawn.X + 1152.0f) < location_epsilon && abs(spawn.Y + 3072.0f) < location_epsilon) {
-			return true;
-		}
-	}
-
-	return false;
+	return gameWrapper->GetCurrentMap().compare("HoopsStadium_P") == 0;
 }
 
 void HoopsKickoffPractice::assignSpawnLocations(ArrayWrapper<CarWrapper> cars)
 {
 	// Track any of the players have not been assigned, and what spawns are available
-	std::vector<unsigned long long> unassigned;
-	std::unordered_set<unsigned long long> assignedPlayers;
+	std::vector<std::string> unassigned;
+	std::unordered_set<std::string> assignedPlayers;
 	std::unordered_set<SpawnName> unassignedSpawns = { blue_left, blue_mid_left, blue_mid, blue_mid_right, blue_right,
 													   orange_left, orange_mid_left, orange_mid, orange_mid_right, orange_right };
 	for (int i = 0; i < cars.Count(); i++) {
 		auto pri = cars.Get(i).GetPRI();
 		if (!pri.IsNull()) {
-			auto playerID = pri.GetUniqueId().ID;
+			auto playerID = GetUniqueID(pri);
+			cvarManager->log(playerID);
 			auto it = playerToSpawn.find(playerID);
 			if (it == playerToSpawn.end()) {
 				unassigned.push_back(playerID);
@@ -265,7 +287,7 @@ void HoopsKickoffPractice::assignSpawnLocations(ArrayWrapper<CarWrapper> cars)
 
 	// Assign spawns for new players, starting with previously assigned spawns and finishing with unassigned spawns
 	auto it = unassignedSpawns.begin();
-	for (unsigned long long player : unassigned) {
+	for (std::string player : unassigned) {
 		if (!extras.empty()) {
 			SpawnName spawn = extras.front();
 			extras.pop();
@@ -282,9 +304,9 @@ void HoopsKickoffPractice::assignSpawnLocations(ArrayWrapper<CarWrapper> cars)
 	for (int i = 0; i < cars.Count(); i++) {
 		auto pri = cars.Get(i).GetPRI();
 		if (!pri.IsNull()) {
-			auto it = playerToSpawn.find(pri.GetUniqueId().ID);
+			auto it = playerToSpawn.find(GetUniqueID(pri));
 			if (it != playerToSpawn.end()) {
-				spawnToPlayerData[it->second] = PlayerData{ pri.GetUniqueId().ID, pri.GetPlayerName().ToString() };
+				spawnToPlayerData[it->second] = PlayerData{ GetUniqueID(pri), pri.GetPlayerName().ToString() };
 			}
 		}
 	}
@@ -300,21 +322,21 @@ void HoopsKickoffPractice::swapBySpawns(SpawnName x, SpawnName y)
 		return;
 	}
 	else if (it1 == spawnToPlayerData.end()) {
+		playerToSpawn[it2->second.playerID] = x;
 		spawnToPlayerData[x] = it2->second;
 		spawnToPlayerData.erase(y);
-		playerToSpawn[it2->second.steamID] = x;
 	}
 	else if (it2 == spawnToPlayerData.end()) {
+		playerToSpawn[it1->second.playerID] = y;
 		spawnToPlayerData[y] = it1->second;
 		spawnToPlayerData.erase(x);
-		playerToSpawn[it1->second.steamID] = y;
 	}
 	else {
+		playerToSpawn[it2->second.playerID] = x;
+		playerToSpawn[it1->second.playerID] = y;
+
 		PlayerData& item1 = it1->second;
 		PlayerData& item2 = it2->second;
 		std::swap(item1, item2);
-
-		playerToSpawn[it2->second.steamID] = x;
-		playerToSpawn[it1->second.steamID] = y;
 	}
 }

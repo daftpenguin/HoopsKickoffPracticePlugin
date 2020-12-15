@@ -77,7 +77,6 @@ void HoopsKickoffPractice::Render()
 
 					float y = spawnNameToPoint[spawn].location.Y;
 					int offset = roundf((3200 - abs(y)) / 120.0f) * 10.0f;
-					cvarManager->log("y: " + std::to_string(y) + ", indent: " + std::to_string(offset));
 					
 					if (spawn < num_spawns / 2) { // left aligned, use indent for offset
 						if (offset > 1) {
