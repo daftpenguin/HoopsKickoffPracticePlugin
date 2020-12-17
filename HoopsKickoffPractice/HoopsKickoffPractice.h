@@ -7,7 +7,7 @@
 
 #include <unordered_map>
 
-constexpr auto plugin_version = "0.2";
+constexpr auto plugin_version = "0.3";
 constexpr auto kickoff_delay = 0.15f;
 constexpr auto location_epsilon = 0.01f;
 constexpr auto num_spawns = 10;
