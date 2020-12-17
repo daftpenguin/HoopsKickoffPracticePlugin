@@ -16,7 +16,7 @@ These features work with multiple players in either a local freeplay session or 
 # Changelog
 
 v0.3
-* Fixed bug where use picks up boost pads sometimes when teleporting to kickoff position during reset
+* Fixed bug where user picks up boost pads sometimes when teleporting to kickoff position during reset
 
 v0.2
 * Updated to work with upcoming Epic Games support
