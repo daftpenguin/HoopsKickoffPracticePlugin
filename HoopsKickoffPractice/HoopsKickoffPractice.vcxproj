@@ -84,7 +84,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)..\bakkesmod-patch.exe "$(TargetPath)"</Command>
+      <Command>$(BAKKESMODSDK)\bakkesmod-patch.exe "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

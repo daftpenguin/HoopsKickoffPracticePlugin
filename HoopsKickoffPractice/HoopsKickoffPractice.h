@@ -51,6 +51,8 @@ class HoopsKickoffPractice : public BakkesMod::Plugin::BakkesModPlugin, public B
 	void setKickoff(std::vector<std::string> params);
 	void swapBySpawns(SpawnName x, SpawnName y);
 
+	float hoopsVelocity = -1580;
+
 private:
 	bool carHasInput(ArrayWrapper<CarWrapper> cars);
 	bool isHoops(ServerWrapper server);
