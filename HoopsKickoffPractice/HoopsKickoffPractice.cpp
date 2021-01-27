@@ -241,12 +241,6 @@ bool HoopsKickoffPractice::carHasInput(ArrayWrapper<CarWrapper> cars)
 
 bool HoopsKickoffPractice::isHoops(ServerWrapper server)
 {
-	auto bs = server.GetBallSpawnPoint();
-	if (!bs.IsNull()) {
-		auto loc = bs.GetLocation();
-		cvarManager->log("X: " + std::to_string(loc.X) + ", Y: " + std::to_string(loc.Y));
-	}
-
 	// Reverting to old detection, for custom hoops maps
 	auto spawns = server.GetSpawnPoints();
 	if (spawns.IsNull()) {
@@ -255,9 +249,7 @@ bool HoopsKickoffPractice::isHoops(ServerWrapper server)
 
 	for (int i = 0; i < spawns.Count(); i++) {
 		auto spawn = spawns.Get(i).GetLocation();
-		cvarManager->log("X: " + std::to_string(abs(spawn.X + 1152.0f)) + ", Y: " + std::to_string(abs(spawn.Y + 3072.0f)) + ", epsilon: " + std::to_string(location_epsilon));
 		if (abs(spawn.X + 1152.0f) < location_epsilon && abs(spawn.Y + 3072.0f) < location_epsilon) {
-			cvarManager->log("Returning true");
 			return true;
 		}
 	}
